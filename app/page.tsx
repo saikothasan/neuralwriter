@@ -5,13 +5,18 @@ import { useState } from 'react';
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim()) {
+      setError('Prompt cannot be empty.');
+      return;
+    }
 
     setLoading(true);
     setResult(null);
+    setError(null);
 
     try {
       const response = await fetch('/api/generate', {
@@ -22,21 +27,21 @@ export default function Home() {
 
       const data = await response.json();
 
-      if (response.ok) {
-        setResult(data.candidates[0]?.output || 'No content generated.');
+      if (response.ok && data.output) {
+        setResult(data.output);
       } else {
-        setResult(`Error: ${data.error}`);
+        setError(data.error || 'Failed to generate content.');
       }
-    } catch (error) {
-      console.error(error);
-      setResult('Error generating content.');
+    } catch (err) {
+      console.error(err);
+      setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 to-white">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 to-white px-4">
       <div className="max-w-3xl w-full bg-white p-8 shadow-md rounded-lg">
         <h1 className="text-3xl font-bold text-indigo-600 text-center">AI Prompt Generator</h1>
         <p className="text-gray-600 text-center mt-2">
@@ -50,6 +55,8 @@ export default function Home() {
           rows={5}
           className="mt-6 w-full p-4 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
         ></textarea>
+
+        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
         <button
           onClick={handleGenerate}
@@ -71,7 +78,7 @@ export default function Home() {
         )}
       </div>
 
-      <footer className="mt-12 text-gray-500">
+      <footer className="mt-12 text-gray-500 text-center">
         Made with ❤️ using Next.js, Tailwind CSS, and the Gemini API.
       </footer>
     </div>
